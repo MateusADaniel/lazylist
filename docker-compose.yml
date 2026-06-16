@@ -60,3 +60,15 @@ services:
     depends_on:
       db-tasks:
         condition: service_healthy
+
+  api-gateway:
+    build: ./api-gateway
+    environment:
+      AUTH_SERVICE_URL: http://auth-service:5001
+      TASK_SERVICE_URL: http://task-service:5002
+      JWT_SECRET: troque-este-segredo-no-k8s
+    ports:
+      - "8080:8080"
+    depends_on:
+      - auth-service
+      - task-service
