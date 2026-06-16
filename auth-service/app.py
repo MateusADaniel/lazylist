@@ -49,6 +49,33 @@ def token_required(f):
     return wrapper
 
 
+def admin_required(f):
+    @wraps(f)
+    @token_required
+    def wrapper(*args, **kwargs):
+        if request.user_role != "admin":
+            return jsonify({"error": "acesso negado"}), 403
+        return f(*args, **kwargs)
+    return wrapper
+
+
+def seed_admin(app):
+    """Cria um admin inicial a partir de variáveis de ambiente, se não existir."""
+    email = os.environ.get("ADMIN_EMAIL")
+    password = os.environ.get("ADMIN_PASSWORD")
+    if not email or not password:
+        return
+    with app.app_context():
+        if not User.query.filter_by(email=email).first():
+            db.session.add(User(
+                username="admin",
+                email=email,
+                password_hash=generate_password_hash(password),
+                role="admin",
+            ))
+            db.session.commit()
+
+
 def build_db_uri():
     return (
         f"mysql+pymysql://{os.environ['DB_USER']}:{os.environ['DB_PASSWORD']}"
@@ -76,6 +103,7 @@ def create_app():
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     db.init_app(app)
     init_db(app)
+    seed_admin(app)
 
     @app.get("/health")
     def health():
@@ -106,6 +134,28 @@ def create_app():
         if not user or not check_password_hash(user.password_hash, data.get("password", "")):
             return jsonify({"error": "credenciais invalidas"}), 401
         return jsonify({"access_token": encode_token(user)})
+
+    @app.post("/auth/logout")            # RF03
+    @token_required
+    def logout():
+        db.session.add(RevokedToken(jti=request.token_jti))
+        db.session.commit()
+        return jsonify({"message": "logout realizado"})
+
+    @app.get("/auth/users")              # RF10
+    @admin_required
+    def list_users():
+        return jsonify([u.to_dict() for u in User.query.all()])
+
+    @app.delete("/auth/users/<int:user_id>")   # RF10
+    @admin_required
+    def delete_user(user_id):
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({"error": "usuario nao encontrado"}), 404
+        db.session.delete(user)
+        db.session.commit()
+        return jsonify({"message": "usuario removido"})
 
     return app
 

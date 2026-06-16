@@ -38,6 +38,8 @@ services:
       DB_PASSWORD: lazypass
       DB_NAME: lazylist_users
       JWT_SECRET: troque-este-segredo-no-k8s
+      ADMIN_EMAIL: admin@lazylist.com
+      ADMIN_PASSWORD: admin123
     ports:
       - "5001:5001"
     depends_on:
