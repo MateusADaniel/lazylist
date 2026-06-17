@@ -8,7 +8,7 @@ on:
 jobs:
   analyze:
     runs-on: ubuntu-latest
-    pernmissions:
+    permissions:
       security-events: write
 
       actions: read
@@ -16,4 +16,4 @@ jobs:
 
     steps:
       - name: Perform Bandit Analysis
-        uses: PyCQA/Bandit-action@v1
+        uses: PyCQA/bandit-action@v1
