@@ -8,9 +8,13 @@
     * SAST []
     * DAST []
     * SCA []
+    * Deploy para o Kubernetes via pipeline []
 
 # Kubernetes:
-    * Manifesto de produção []
+    * Manifesto de produção [x]
+    * Mudar secrets []
+    * Usar loadbalancer para expor IP []
+    * Usar storage não local-path []
 
 # Containerização:
     * Dockerfile por pod [/]:
