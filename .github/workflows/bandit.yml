@@ -1,0 +1,17 @@
+name: Bandit
+
+on:
+  workflow_dispatch:
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    pernmissions:
+      security-events: write
+
+      actions: read
+      contents: read
+
+    steps:
+      - name: Perform Bandit Analysis
+        uses: PyCQA/Bandit-action@v1
