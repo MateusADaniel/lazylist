@@ -12,3 +12,5 @@ jobs:
         with:
           api-key: ${{ secrets.FOSSA_API_KEY }}
           run-tests: true
+        env:
+          FOSSA_LOG_LEVEL: debug
