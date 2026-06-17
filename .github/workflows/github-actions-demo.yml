@@ -7,9 +7,12 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
-      - name: FOSSA test
+      - name: FOSSA scan
         uses: fossas/fossa-action@v1
         with:
           api-key: ${{ secrets.FOSSA_API_KEY }}
-        env:
-          FOSSA_LOG_LEVEL: debug
+      - name: FOSSA scan
+        uses: fossas/fossa-action@v1
+        with:
+          api-key: ${{ secrets.FOSSA_API_KEY }}
+          run-tests: true
