@@ -1,11 +1,11 @@
-const API = "http://localhost:8080/api";
+/* const API = "http://localhost:8080/api"; */
 let token = null;
 
 function val(id) { return document.getElementById(id).value; }
 function show(msg) { document.getElementById("msg").textContent = msg; }
 
 async function register() {
-  const res = await fetch(`${API}/auth/register`, {
+  const res = await fetch(`/auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username: val("username"), email: val("email"), password: val("password") }),
@@ -14,7 +14,7 @@ async function register() {
 }
 
 async function login() {
-  const res = await fetch(`${API}/auth/login`, {
+  const res = await fetch(`/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email: val("email"), password: val("password") }),
@@ -27,14 +27,14 @@ async function login() {
 }
 
 async function logout() {
-  await fetch(`${API}/auth/logout`, { method: "POST", headers: { Authorization: `Bearer ${token}` } });
+  await fetch(`/auth/logout`, { method: "POST", headers: { Authorization: `Bearer ${token}` } });
   token = null;
   document.getElementById("auth").style.display = "block";
   document.getElementById("app").style.display = "none";
 }
 
 async function createTask() {
-  await fetch(`${API}/tasks`, {
+  await fetch(`/tasks`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
     body: JSON.stringify({ title: val("title"), description: val("description"), due_date: val("due_date") || null }),
@@ -44,7 +44,7 @@ async function createTask() {
 
 async function loadTasks(clear = false) {
   const date = clear ? "" : val("filter_date");
-  const url = date ? `${API}/tasks?date=${date}` : `${API}/tasks`;
+  const url = date ? `/tasks?date=${date}` : `/tasks`;
   const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
   const tasks = await res.json();
   const ul = document.getElementById("tasks");
@@ -55,7 +55,7 @@ async function loadTasks(clear = false) {
     const del = document.createElement("button");
     del.textContent = "excluir";
     del.onclick = async () => {
-      await fetch(`${API}/tasks/${t.id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+      await fetch(`/tasks/${t.id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
       loadTasks(true);
     };
     li.appendChild(del);
