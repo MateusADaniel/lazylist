@@ -5,9 +5,8 @@
 # Actions do Github:
     * Publicar imagem no dockerhub [/]
     * Escrever integracao do kubernetes com o runner custom []
-    * SAST []
-    * DAST []
-    * SCA []
+    * SAST [x]
+    * SCA [x]
     * Deploy para o Kubernetes via pipeline []
 
 # Kubernetes:
