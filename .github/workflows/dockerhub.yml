@@ -12,13 +12,13 @@ jobs:
           - image-name: lazy-gateway
             context: ./api-gateway
             dockerfile: ./api-gateway/Dockerfile
-          - image-name: auth-service
+          - image-name: lazy-auth
             context: ./auth-service
             dockerfile: ./auth-service/Dockerfile
-          - image-name: task-service
+          - image-name: lazy-tasks
             context: ./task-service
             dockerfile: ./task-service/Dockerfile
-          - image-name: web
+          - image-name: lazy-web
             context: ./web
             dockerfile: ./web/Dockerfile
     steps:
