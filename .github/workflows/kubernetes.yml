@@ -3,7 +3,7 @@ run-name: Deploy Kubernoots config
 on: [push]
 jobs:
   deploy-k8s:
-    runs-on: devsecops
+    runs-on: self-hosted
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
