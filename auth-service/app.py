@@ -110,6 +110,8 @@ def create_app():
     init_db(app)
     seed_admin(app)
 
+    # LIMITA AS REQUISICOES DE UM MESMO IP 
+    #
     limiter = Limiter(get_remote_address, app=app, default_limits=["200 per hour"])
 
     @app.get("/health")
