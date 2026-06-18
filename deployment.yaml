@@ -30,6 +30,30 @@ spec:
       targetPort: 3306
   selector:
     app: db-users
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-service
+  namespace: lazylist
+spec:
+  ports:
+    - port: 5001
+      targetPort: 5001
+  selector:
+    app: auth-service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: task-service
+  namespace: lazylist
+spec:
+  ports:
+    - port: 5002
+      targetPort: 5002
+  selector:
+    app: task-service
 
 ---
 apiVersion: apps/v1
@@ -169,6 +193,7 @@ spec:
       containers:
         - name: auth-service
           image: vhns123/cibsegdevsecops:lazy-auth
+          imagePullPolicy: Always
           ports:
             - containerPort: 5001
           env:
@@ -213,6 +238,7 @@ spec:
       containers:
         - name: task-service
           image: vhns123/cibsegdevsecops:lazy-tasks
+          imagePullPolicy: Always
           ports:
             - containerPort: 5002
           env:
@@ -257,6 +283,7 @@ spec:
       containers:
         - name: api-gateway
           image: vhns123/cibsegdevsecops:lazy-gateway
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
           env:
@@ -289,6 +316,7 @@ spec:
       containers:
         - name: web
           image: vhns123/cibsegdevsecops:lazy-web
+          imagePullPolicy: Always
           ports:
             - containerPort: 80
 
