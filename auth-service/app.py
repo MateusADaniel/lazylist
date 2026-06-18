@@ -29,6 +29,8 @@ def encode_token(user):
         "iat": now,
         "exp": now + timedelta(minutes=JWT_EXP_MINUTES),
     }
+    #
+    # STRIDE Spoofing/Tampering: token assinado com chave secreta (HS256), impede forjar ou alterar o payload
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
 
@@ -58,6 +60,8 @@ def admin_required(f):
     @wraps(f)
     @token_required
     def wrapper(*args, **kwargs):
+        #
+        # STRIDE Elevation of Privilege: só admin passa; cliente recebe 403
         if request.user_role != "admin":
             return jsonify({"error": "acesso negado"}), 403
         return f(*args, **kwargs)
@@ -110,8 +114,8 @@ def create_app():
     init_db(app)
     seed_admin(app)
 
-    # LIMITA AS REQUISICOES DE UM MESMO IP 
-    #
+    # 
+    # STRIDE Denial of Service: limite global de requisições por IP
     limiter = Limiter(get_remote_address, app=app, default_limits=["200 per hour"])
 
     @app.get("/health")
@@ -119,6 +123,8 @@ def create_app():
         return jsonify({"status": "ok"})
 
     @app.post("/auth/register")          # RF01
+    #
+    # STRIDE Denial of Service: limita criação de contas em massa
     @limiter.limit("10 per minute")
     def register():
         data = request.get_json(silent=True) or {}
@@ -130,21 +136,33 @@ def create_app():
         user = User(
             username=data["username"],
             email=data["email"],
-            password_hash=generate_password_hash(data["password"]),
+            #
+            # STRIDE Information Disclosure: senha nunca salva em texto puro, apenas o hash
+            password_hash=generate_password_hash(data["password"]),  
+            #
+            # STRIDE Elevation of Privilege: cadastro público sempre cria cliente, nunca admin
             role="cliente",
         )
         db.session.add(user)
         db.session.commit()
+        #
+        # STRIDE Repudiation: registra o cadastro para trilha de auditoria
         app.logger.info(f"register user_id={user.id} email={user.email}")
         return jsonify({"id": user.id, "username": user.username}), 201
 
     @app.post("/auth/login")             # RF02
+    #
+    # STRIDE Denial of Service: limita tentativas de login (anti força-bruta de senha)
     @limiter.limit("5 per minute")
     def login():
         data = request.get_json(silent=True) or {}
         user = User.query.filter_by(email=data.get("email")).first()
+        #
+        # STRIDE Information Disclosure: compara hash sem expor a senha; erro genérico não revela se o email existe
         if not user or not check_password_hash(user.password_hash, data.get("password", "")):
             return jsonify({"error": "credenciais invalidas"}), 401
+        #
+        # STRIDE Repudiation: registra o login para trilha de auditoria
         app.logger.info(f"login user_id={user.id}")
         return jsonify({"access_token": encode_token(user)})
 
