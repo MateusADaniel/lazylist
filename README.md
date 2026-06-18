@@ -12,7 +12,7 @@
 # Kubernetes:
     * Manifesto de produção [x]
     * Mudar secrets []
-    * Usar loadbalancer para expor IP []
+    * Usar loadbalancer para expor IP [x]
     * Usar storage não local-path []
 
 # Containerização:
