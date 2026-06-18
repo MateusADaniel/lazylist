@@ -73,7 +73,8 @@ def create_app():
             return date.fromisoformat(value), None
         except ValueError:
             return None, "due_date invalida (use YYYY-MM-DD)"
-
+    #
+    # STRIDE Information Disclosure: controle de acesso por dono
     def get_accessible_task(task_id):
         task = Task.query.get(task_id)
         if not task:
