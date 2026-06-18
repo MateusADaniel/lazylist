@@ -9,4 +9,4 @@ jobs:
         uses: actions/checkout@v6
       - name: Aplicar configuração
         run: |
-          kubectl -f apply deployment.yaml
+          kubectl apply -f deployment.yaml
