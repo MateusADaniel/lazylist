@@ -9,4 +9,4 @@ jobs:
         uses: actions/checkout@v6
       - name: Aplicar configuração
         run: |
-          kubectl apply -f deployment.yaml
+          /snap/bin/microk8s kubectl apply -f deployment.yaml
