@@ -1,0 +1,25 @@
+name: Build and push images
+
+on: [pull_request]
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - image-name: lazy-gateway
+            context: ./api-gateway
+            dockerfile: ./api-gateway/Dockerfile
+          - image-name: lazy-auth
+            context: ./auth-service
+            dockerfile: ./auth-service/Dockerfile
+          - image-name: lazy-tasks
+            context: ./task-service
+            dockerfile: ./task-service/Dockerfile
+          - image-name: lazy-web
+            context: ./web
+            dockerfile: ./web/Dockerfile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
