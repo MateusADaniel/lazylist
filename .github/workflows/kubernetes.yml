@@ -1,0 +1,12 @@
+name: Kubernetes deployment
+run-name: Deploy Kubernoots config
+on: [push]
+jobs:
+  deploy-k8s:
+    runs-on: self-hosted
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Aplicar configuração
+        run: |
+          /snap/bin/microk8s kubectl apply -f deployment.yaml
