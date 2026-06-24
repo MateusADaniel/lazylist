@@ -1,6 +1,5 @@
 # Código:
     * Escrever funções não dummy para a aplicação [x]:
-    * teste
 
 # Actions do Github:
     * Publicar imagem no dockerhub [x]
