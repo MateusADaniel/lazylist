@@ -1,0 +1,118 @@
+name: CI/CD Pipeline LazyList
+
+# Dispara em push (pipeline completa: scan -> build -> push -> deploy)
+# e em pull_request (somente validacao: scan -> build sem publicar).
+on: [push, pull_request]
+
+jobs:
+
+  # ===================================================================
+  # 1. SCA - Software Composition Analysis (FOSSA)
+  #    Analisa as DEPENDENCIAS de terceiros (requirements.txt).
+  #    Primeiro job da sequencia, conforme pedido.
+  # ===================================================================
+  fossa:
+    name: SCA - FOSSA
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: FOSSA analyze
+        uses: fossas/fossa-action@v1
+        with:
+          api-key: ${{ secrets.FOSSA_API_KEY }}
+
+      - name: FOSSA test (trava de politica)
+        uses: fossas/fossa-action@v1
+        with:
+          api-key: ${{ secrets.FOSSA_API_KEY }}
+          run-tests: true
+
+  # ===================================================================
+  # 2. SAST - Static Application Security Testing (Bandit)
+  #    Analisa o CODIGO-FONTE Python.
+  #    needs: fossa  ->  so roda se o FOSSA passar.
+  # ===================================================================
+  bandit:
+    name: SAST - Bandit
+    needs: fossa
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Perform Bandit Analysis
+        uses: PyCQA/bandit-action@v1
+
+  # ===================================================================
+  # 3. BUILD (+ PUSH) das imagens Docker
+  #    needs: bandit  ->  so builda se SCA e SAST passaram.
+  #    Em pull_request: builda SEM publicar (validacao de CI).
+  #    Em push:         builda E publica no Docker Hub (entrega continua).
+  # ===================================================================
+  build-and-push:
+    name: Build & Push images
+    needs: bandit
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - image-name: lazy-gateway
+            context: ./api-gateway
+            dockerfile: ./api-gateway/Dockerfile
+          - image-name: lazy-auth
+            context: ./auth-service
+            dockerfile: ./auth-service/Dockerfile
+          - image-name: lazy-tasks
+            context: ./task-service
+            dockerfile: ./task-service/Dockerfile
+          - image-name: lazy-web
+            context: ./web
+            dockerfile: ./web/Dockerfile
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      # Login so e necessario quando vai publicar (push, nao em PR)
+      - name: Docker login
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          # publica somente se NAO for pull_request
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: vhns123/cibsegdevsecops:${{ matrix.image-name }}
+
+  # ===================================================================
+  # 4. DEPLOY no Kubernetes (implantacao continua)
+  #    needs: build-and-push -> espera as 4 imagens ficarem prontas.
+  #    if: nao roda em pull_request, so em push real.
+  #    Runner self-hosted: tem acesso ao cluster microk8s.
+  # ===================================================================
+  deploy-k8s:
+    name: Deploy Kubernetes
+    needs: build-and-push
+    if: github.event_name != 'pull_request'
+    runs-on: self-hosted
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Aplicar configuracao
+        run: |
+          /snap/bin/microk8s kubectl apply -f deployment.yaml
