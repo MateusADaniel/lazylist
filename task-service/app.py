@@ -22,11 +22,39 @@ def build_db_uri():
     )
 
 
+MIGRATIONS = [
+    ("priority",  "VARCHAR(10) NOT NULL DEFAULT 'media'"),
+    ("done",      "TINYINT(1) NOT NULL DEFAULT 0"),
+    ("category",  "VARCHAR(100) NULL"),
+]
+
+
+def run_migrations(app):
+    with app.app_context():
+        conn = db.engine.connect()
+        for col_name, col_def in MIGRATIONS:
+            result = conn.execute(
+                db.text(
+                    "SELECT COUNT(*) FROM information_schema.COLUMNS "
+                    "WHERE TABLE_SCHEMA = DATABASE() "
+                    "AND TABLE_NAME = 'tasks' "
+                    "AND COLUMN_NAME = :col"
+                ),
+                {"col": col_name},
+            )
+            if result.scalar() == 0:
+                conn.execute(db.text(f"ALTER TABLE tasks ADD COLUMN {col_name} {col_def}"))
+                conn.commit()
+                logging.info(f"migration: added column '{col_name}'")
+        conn.close()
+
+
 def init_db(app, retries=10, delay=3):
     with app.app_context():
         for attempt in range(retries):
             try:
                 db.create_all()
+                run_migrations(app)
                 return
             except Exception:
                 if attempt == retries - 1:
@@ -90,6 +118,8 @@ def create_app():
             return None, (jsonify({"error": "acesso negado"}), 403)
         return task, None
 
+    VALID_PRIORITIES = {"baixa", "media", "alta"}
+
     @app.post("/tasks")                  # RF04
     @token_required
     def create_task():
@@ -99,11 +129,17 @@ def create_app():
         due, err = parse_due_date(data.get("due_date"))
         if err:
             return jsonify({"error": err}), 400
+        priority = data.get("priority", "media")
+        if priority not in VALID_PRIORITIES:
+            return jsonify({"error": "priority deve ser baixa, media ou alta"}), 400
         task = Task(
             user_id=request.user_id,
             title=data["title"],
             description=data.get("description", ""),
             due_date=due,
+            priority=priority,
+            done=bool(data.get("done", False)),
+            category=data.get("category"),
         )
         db.session.add(task)
         db.session.commit()
@@ -113,16 +149,69 @@ def create_app():
     @app.get("/tasks")                   # RF05 + RF08
     @token_required
     def list_tasks():
+        from sqlalchemy import case, or_
         query = Task.query
         if request.user_role != "admin":
             query = query.filter_by(user_id=request.user_id)
-        date_filter = request.args.get("date")          # RF08
+
+        # Legacy single-date filter (mantido para compatibilidade)
+        date_filter = request.args.get("date")
         if date_filter:
             due, err = parse_due_date(date_filter)
             if err:
                 return jsonify({"error": err}), 400
             query = query.filter_by(due_date=due)
-        return jsonify([t.to_dict() for t in query.order_by(Task.due_date).all()])
+
+        # Filtro por status
+        status = request.args.get("status")
+        if status == "pendentes":
+            query = query.filter_by(done=False)
+        elif status == "concluidas":
+            query = query.filter_by(done=True)
+
+        # Filtro por prioridade
+        prio = request.args.get("priority")
+        if prio in VALID_PRIORITIES:
+            query = query.filter_by(priority=prio)
+
+        # Intervalo de datas
+        date_from = request.args.get("date_from")
+        date_to   = request.args.get("date_to")
+        if date_from:
+            d, err = parse_due_date(date_from)
+            if err:
+                return jsonify({"error": err}), 400
+            query = query.filter(Task.due_date >= d)
+        if date_to:
+            d, err = parse_due_date(date_to)
+            if err:
+                return jsonify({"error": err}), 400
+            query = query.filter(Task.due_date <= d)
+
+        # Busca textual
+        search = request.args.get("search", "").strip()
+        if search:
+            pattern = f"%{search}%"
+            query = query.filter(
+                or_(Task.title.ilike(pattern), Task.description.ilike(pattern))
+            )
+
+        # Ordenação
+        sort = request.args.get("sort", "due_date")
+        if sort == "priority":
+            priority_order = case(
+                (Task.priority == "alta",  1),
+                (Task.priority == "media", 2),
+                (Task.priority == "baixa", 3),
+                else_=4,
+            )
+            query = query.order_by(priority_order)
+        elif sort == "created_at":
+            query = query.order_by(Task.created_at.desc())
+        else:
+            query = query.order_by(Task.due_date)
+
+        return jsonify([t.to_dict() for t in query.all()])
 
     @app.get("/tasks/<int:task_id>")     # RF09
     @token_required
@@ -148,6 +237,24 @@ def create_app():
             if err:
                 return jsonify({"error": err}), 400
             task.due_date = due
+        if "priority" in data:
+            if data["priority"] not in VALID_PRIORITIES:
+                return jsonify({"error": "priority deve ser baixa, media ou alta"}), 400
+            task.priority = data["priority"]
+        if "done" in data:
+            task.done = bool(data["done"])
+        if "category" in data:
+            task.category = data["category"]
+        db.session.commit()
+        return jsonify(task.to_dict())
+
+    @app.patch("/tasks/<int:task_id>/done")
+    @token_required
+    def toggle_done(task_id):
+        task, error = get_accessible_task(task_id)
+        if error:
+            return error
+        task.done = not task.done
         db.session.commit()
         return jsonify(task.to_dict())
 

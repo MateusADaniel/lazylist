@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,33 +7,168 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>LazyList</h1>
 
-  <section id="auth">
-    <h2>Acesso</h2>
-    <input id="email" placeholder="email">
-    <input id="password" type="password" placeholder="senha">
-    <input id="username" placeholder="nome (apenas cadastro)">
-    <button onclick="register()">Cadastrar</button>
-    <button onclick="login()">Entrar</button>
-  </section>
+  <!-- ===== Página de autenticação ===== -->
+  <div id="auth-page">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <span class="logo-mark">✓</span>
+        <span class="logo-name">LazyList</span>
+      </div>
+      <p class="auth-tagline">Suas tarefas, organizadas.</p>
 
-  <section id="app" style="display:none">
-    <button onclick="logout()">Sair</button>
-    <h2>Nova tarefa</h2>
-    <input id="title" placeholder="título">
-    <input id="description" placeholder="descrição">
-    <input id="due_date" type="date">
-    <button onclick="createTask()">Adicionar</button>
+      <div class="auth-tabs">
+        <button id="tab-login" class="tab-btn active" onclick="showTab('login')">Entrar</button>
+        <button id="tab-register" class="tab-btn" onclick="showTab('register')">Criar conta</button>
+      </div>
 
-    <h2>Minhas tarefas</h2>
-    <input id="filter_date" type="date">
-    <button onclick="loadTasks()">Filtrar</button>
-    <button onclick="loadTasks(true)">Limpar filtro</button>
-    <ul id="tasks"></ul>
-  </section>
+      <div id="form-login" class="auth-form">
+        <label>E-mail
+          <input id="login-email" type="email" placeholder="seu@email.com">
+        </label>
+        <label>Senha
+          <input id="login-password" type="password" placeholder="••••••••">
+        </label>
+        <button class="btn btn-primary btn-block" onclick="login()">Entrar</button>
+      </div>
 
-  <p id="msg"></p>
+      <div id="form-register" class="auth-form" style="display:none">
+        <label>Nome
+          <input id="reg-username" placeholder="Seu nome">
+        </label>
+        <label>E-mail
+          <input id="reg-email" type="email" placeholder="seu@email.com">
+        </label>
+        <label>Senha
+          <input id="reg-password" type="password" placeholder="••••••••">
+        </label>
+        <button class="btn btn-primary btn-block" onclick="register()">Criar conta</button>
+      </div>
+
+      <p id="auth-msg" class="auth-msg"></p>
+    </div>
+  </div>
+
+  <!-- ===== Aplicação ===== -->
+  <div id="app-page" style="display:none">
+
+    <header class="app-header">
+      <div class="header-inner">
+        <span class="header-logo">✓ LazyList</span>
+        <div class="header-actions">
+          <button class="btn btn-ghost btn-icon" id="theme-btn" onclick="toggleTheme()" title="Alternar tema">🌙</button>
+          <button class="btn btn-ghost" onclick="logout()">Sair</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="container">
+
+      <!-- Formulário nova tarefa -->
+      <section class="card form-card">
+        <h2 class="section-title">Nova tarefa</h2>
+        <div class="form-row">
+          <input id="title" class="input-grow" placeholder="Título da tarefa">
+          <select id="priority" class="select-sm">
+            <option value="media">⚡ Média</option>
+            <option value="alta">🔴 Alta</option>
+            <option value="baixa">🟢 Baixa</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <input id="description" class="input-grow" placeholder="Descrição (opcional)">
+          <input id="due_date" type="date" class="input-date">
+          <button id="btn-add" class="btn btn-primary" onclick="createTask()">+ Adicionar</button>
+        </div>
+      </section>
+
+      <!-- Dashboard -->
+      <div id="dashboard">
+        <div class="stat-card" id="stat-total">
+          <span class="stat-num">—</span>
+          <span class="stat-lbl">Total</span>
+        </div>
+        <div class="stat-card" id="stat-pendentes">
+          <span class="stat-num">—</span>
+          <span class="stat-lbl">Pendentes</span>
+        </div>
+        <div class="stat-card" id="stat-concluidas">
+          <span class="stat-num">—</span>
+          <span class="stat-lbl">Concluídas</span>
+        </div>
+        <div class="stat-card" id="stat-atrasadas">
+          <span class="stat-num">—</span>
+          <span class="stat-lbl">Atrasadas</span>
+        </div>
+      </div>
+
+      <!-- Filtros -->
+      <div id="filters" class="card">
+        <input id="search" placeholder="🔍  Buscar por título ou descrição…" oninput="debouncedLoad()">
+        <div class="filter-row">
+          <select id="filter_status" onchange="loadTasks()">
+            <option value="">Todas</option>
+            <option value="pendentes">Pendentes</option>
+            <option value="concluidas">Concluídas</option>
+          </select>
+          <select id="filter_priority" onchange="loadTasks()">
+            <option value="">Qualquer prioridade</option>
+            <option value="alta">Alta</option>
+            <option value="media">Média</option>
+            <option value="baixa">Baixa</option>
+          </select>
+          <select id="sort" onchange="loadTasks()">
+            <option value="due_date">↕ Data</option>
+            <option value="priority">↕ Prioridade</option>
+            <option value="created_at">↕ Criação</option>
+          </select>
+          <label class="date-label">De <input id="date_from" type="date" onchange="loadTasks()"></label>
+          <label class="date-label">Até <input id="date_to" type="date" onchange="loadTasks()"></label>
+          <button class="btn btn-ghost btn-sm" onclick="clearFilters()">✕ Limpar</button>
+        </div>
+      </div>
+
+      <!-- Lista de tarefas -->
+      <ul id="tasks"></ul>
+
+      <!-- Estado vazio -->
+      <div id="empty-state" style="display:none">
+        <div class="empty-icon">📋</div>
+        <p class="empty-title">Nenhuma tarefa encontrada</p>
+        <p class="empty-sub">Adicione uma tarefa acima ou ajuste os filtros.</p>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Modal de edição -->
+  <div id="edit-modal">
+    <div id="edit-box">
+      <h3 class="modal-title">Editar tarefa</h3>
+      <label>Título
+        <input id="edit-title">
+      </label>
+      <label>Descrição
+        <input id="edit-description">
+      </label>
+      <label>Data limite
+        <input id="edit-due_date" type="date">
+      </label>
+      <label>Prioridade
+        <select id="edit-priority">
+          <option value="media">⚡ Média</option>
+          <option value="alta">🔴 Alta</option>
+          <option value="baixa">🟢 Baixa</option>
+        </select>
+      </label>
+      <div class="edit-actions">
+        <button class="btn btn-primary" onclick="saveEdit()">Salvar</button>
+        <button class="btn btn-ghost" onclick="closeEdit()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
   <script src="app.js"></script>
 </body>
 </html>
