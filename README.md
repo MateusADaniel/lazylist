@@ -2,7 +2,6 @@
     * Escrever funções não dummy para a aplicação [x]: 
     
 
-
 # Actions do Github:
     * Publicar imagem no dockerhub [x]
     * Escrever integracao do kubernetes com o runner custom [x]
