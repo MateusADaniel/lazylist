@@ -1,5 +1,6 @@
 # Código:
     * Escrever funções não dummy para a aplicação [x]: 
+    
 
 
 # Actions do Github:
