@@ -11,9 +11,8 @@
 
 # Kubernetes:
     * Manifesto de produção [x]
-    * Mudar secrets []
+    * Mudar secrets [X]
     * Usar loadbalancer para expor IP [x]
-    * Usar storage não local-path []
 
 # Containerização:
     * Dockerfile por pod [x]:
